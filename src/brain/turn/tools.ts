@@ -1,4 +1,5 @@
 import type { ToolSet } from "ai"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import type { BrainCostLedger } from "../billing/cost"
 import { createConfigurationTool } from "../configuration"
 import { buildLeaseRuntimeContext } from "../lease/store"
@@ -41,6 +42,7 @@ import { sandboxToolsConfigured } from "../tools/sandbox/client"
 import { createSandboxTools } from "../tools/sandbox/tools"
 import { createSchedulerTools } from "../tools/scheduler"
 import { createSendToTools } from "../tools/send-to"
+import type { SlackAudience } from "../tools/mcp/audience"
 import type { TurnActor } from "./actor"
 import type { CompanyBrainAgent } from "./agent"
 import { createCaptureTools, type TurnCapture } from "./capture-tools"
@@ -258,6 +260,16 @@ export async function assembleTurnTools(
 			: slackLookup?.memoryScope?.kind === "private_channel"
 				? "private_channel"
 				: "public_channel"
+	// Where the reply will be read, for audience-bound MCP servers. Built only
+	// from the Slack event; a turn without Slack context sends none.
+	const slackAudience: SlackAudience | undefined = slackLookup
+		? {
+				surface: slackResponseSurface,
+				channelId: slackLookup.memoryScope?.channelId ?? slackLookup.channel,
+				slackUserId: askerSlackUserId,
+			}
+		: undefined
+	const mcpActor: TurnActor = slackAudience ? { ...actor, slackAudience } : actor
 	const assembleStartedAt = Date.now()
 	console.log(
 		`[company-brain][${traceId}] assembleTurnTools start actorUser=${actor.userId ?? "-"} personalOnly=${actor.personalConnectionsOnly ? "yes" : "no"} scheduled=${scheduledRun ? "yes" : "no"} slackLookup=${slackLookup ? "yes" : "no"} memoryScope=${slackLookup?.memoryScope?.kind ?? "none"}`,
@@ -340,7 +352,7 @@ export async function assembleTurnTools(
 				agent,
 				args.costLedger,
 				// A read-only turn resolves without caching the result as a memory.
-				!actor.readOnly,
+				!actor.readOnly && !memoryWritesDisabled(env),
 			)
 			console.log(
 				`[company-brain][${traceId}] resolve_entity ref="${logPreview(reference)}" ms=${Date.now() - t} ${resolved ? `canonical="${resolved.canonical}" domain=${resolved.domain ?? "-"} source=${resolved.source}` : "unresolved"}`,
@@ -371,7 +383,7 @@ export async function assembleTurnTools(
 			? {}
 			: createProgressTools(deps, args.progress, traceId, args.turnState)),
 		...createCaptureTools(deps, capture, traceId, {
-			allowWrites: !passiveInvestigation,
+			allowWrites: !passiveInvestigation && !memoryWritesDisabled(env),
 			env,
 		}),
 		// Destructive bulk forget: interactive turns only, apply gated by approval.
@@ -773,7 +785,7 @@ export async function assembleTurnTools(
 				agent,
 				env,
 				orgId: org.id,
-				actor,
+				actor: mcpActor,
 				connections: persistedConnections,
 				callbackUrl,
 				traceId,
@@ -815,7 +827,7 @@ export async function assembleTurnTools(
 			const mcpRuntimeFactory = args.mcpRuntimeFactory ?? createMcpRuntimeTools
 			const mcp: McpRuntimeTools = await mcpRuntimeFactory(
 				env,
-				actor,
+				mcpActor,
 				callbackUrl,
 				traceId,
 				leaseCtx,

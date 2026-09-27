@@ -67,3 +67,14 @@ declare module "*.wasm" {
 	const module: WebAssembly.Module
 	export default module
 }
+
+interface Env {
+	/**
+	 * Hostnames of MCP servers that enforce Slack audience permissions (e.g. a
+	 * company wiki). They receive X-Brain-Surface / X-Slack-Channel /
+	 * X-Slack-User on every request and can never be leased. Comma separated.
+	 */
+	AUDIENCE_MCP_HOSTS?: string
+	/** "off" stops every write to supermemory (memories, channel observation, profile). */
+	BRAIN_MEMORY_WRITES?: string
+}

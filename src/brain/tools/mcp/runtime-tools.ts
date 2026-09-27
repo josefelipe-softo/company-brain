@@ -1,6 +1,7 @@
 import { type ToolSet, tool } from "ai"
 import { z } from "zod"
 import type { ActiveLease, LeaseRuntimeContext } from "../../lease/types"
+import type { SlackAudience } from "./audience"
 import { McpReauthRequiredError } from "./oauth-provider"
 import { connectToolProvider, type ToolProviderHandle } from "./provider"
 import {
@@ -106,6 +107,8 @@ export async function createMcpRuntimeTools(
 		readOnly?: boolean
 		/** Hide model search text and provider error bodies from operational logs. */
 		redactToolLogs?: boolean
+		/** Slack audience of the turn; only audience-bound servers receive it. */
+		slackAudience?: SlackAudience
 	},
 	callbackUrl: string,
 	traceId: string,
@@ -146,7 +149,9 @@ export async function createMcpRuntimeTools(
 		let handle: ToolProviderHandle | undefined
 		try {
 			const connectStartedAt = Date.now()
-			handle = await connectToolProvider(env, conn, callbackUrl)
+			handle = await connectToolProvider(env, conn, callbackUrl, {
+				audience: actor.slackAudience,
+			})
 			const connectedAt = Date.now()
 			const listed = await handle.listTools()
 			const finishedAt = Date.now()
@@ -231,7 +236,9 @@ export async function createMcpRuntimeTools(
 			const conn = await getConnectionById(env, lease.lessorConnectionId)
 			if (!conn || conn.status !== "active") continue
 			if (conn.runtime !== "remote_mcp") continue
-			const handle = await connectToolProvider(env, conn, callbackUrl)
+			const handle = await connectToolProvider(env, conn, callbackUrl, {
+				audience: actor.slackAudience,
+			})
 			handles.push(handle)
 			const listed = await handle.listTools()
 			if (!servers.includes(lease.serverSlug)) servers.push(lease.serverSlug)

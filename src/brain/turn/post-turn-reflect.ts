@@ -1,10 +1,11 @@
 import type { Schedule } from "agents"
 import { captureException } from "@/lib/capture"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import {
 	getBrainMemoryResetEpoch,
 	isBrainMemoryResetEpochCurrent,
 } from "../memory/tree"
-import type { CompanyBrainAgent } from "./agent"
+import { brainAgent, type CompanyBrainAgent } from "./agent"
 import { observeInteractionStyle } from "./interaction-observe"
 import { advanceDurableRetry, canScheduleDurableRecovery } from "./retry-state"
 
@@ -494,6 +495,7 @@ export async function armPostTurnReflect(
 	agent: CompanyBrainAgent,
 	payload: PostTurnReflectPayload,
 ): Promise<void> {
+	if (memoryWritesDisabled(brainAgent(agent).env)) return
 	ensurePostTurnReflectTable(agent)
 	const epochPayload = {
 		...payload,

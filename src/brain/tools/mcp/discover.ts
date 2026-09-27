@@ -228,7 +228,12 @@ async function connectSource(args: {
 	try {
 		return {
 			connection,
-			handle: await connectToolProvider(args.env, connection, args.callbackUrl),
+			handle: await connectToolProvider(
+				args.env,
+				connection,
+				args.callbackUrl,
+				{ audience: args.actor.slackAudience },
+			),
 		}
 	} catch (error) {
 		if (error instanceof McpReauthRequiredError) {

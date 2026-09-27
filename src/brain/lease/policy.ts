@@ -2,6 +2,7 @@ import { and, db, desc, eq, sql } from "@repo/db"
 import { member, user } from "@repo/db/schema/auth"
 import { mcpConnection } from "@repo/db/schema/brain/mcp"
 import { lookupSlackUserByEmail } from "../slack/client"
+import { isAudienceBoundServer } from "../tools/mcp/audience"
 import { isMcpServerLeaseable } from "../tools/mcp/catalog"
 import type { LeaseOwnerCandidate } from "./types"
 
@@ -27,6 +28,39 @@ function leaseOwnerCandidatesFromRows(
 	})
 }
 
+/**
+ * Connections to audience-bound servers (AUDIENCE_MCP_HOSTS, e.g. the company
+ * wiki) are never lent: the borrower would read with the lender's
+ * permissions. Matched by URL, since slugs of custom servers are user-chosen.
+ */
+export function withoutAudienceBoundConnections<T extends { serverUrl: string | null }>(
+	env: Pick<Env, "AUDIENCE_MCP_HOSTS">,
+	rows: T[],
+): T[] {
+	return rows.filter((row) => !isAudienceBoundServer(env, row.serverUrl))
+}
+
+/** True when every active connection with this slug points to an audience-bound server. */
+export async function isAudienceBoundSlug(
+	env: Env,
+	orgId: string,
+	serverSlug: string,
+): Promise<boolean> {
+	const rows = await db(env)
+		.select({ serverUrl: mcpConnection.serverUrl })
+		.from(mcpConnection)
+		.where(
+			and(
+				eq(mcpConnection.orgId, orgId),
+				eq(mcpConnection.serverSlug, serverSlug),
+				eq(mcpConnection.status, "active"),
+			),
+		)
+	return (
+		rows.length > 0 && withoutAudienceBoundConnections(env, rows).length === 0
+	)
+}
+
 export async function resolveLeaseOwners(
 	env: Env,
 	orgId: string,
@@ -39,6 +73,7 @@ export async function resolveLeaseOwners(
 			userId: member.userId,
 			connectionId: mcpConnection.id,
 			email: user.email,
+			serverUrl: mcpConnection.serverUrl,
 		})
 		.from(mcpConnection)
 		.innerJoin(
@@ -59,7 +94,10 @@ export async function resolveLeaseOwners(
 		)
 		.orderBy(desc(mcpConnection.updatedAt))
 
-	return leaseOwnerCandidatesFromRows(rows, excludeUserId)
+	return leaseOwnerCandidatesFromRows(
+		withoutAudienceBoundConnections(env, rows),
+		excludeUserId,
+	)
 }
 
 export async function isEligibleLeaseOwner(
@@ -71,7 +109,7 @@ export async function isEligibleLeaseOwner(
 ): Promise<boolean> {
 	if (!isMcpServerLeaseable(serverSlug)) return false
 	const rows = await db(env)
-		.select({ userId: member.userId })
+		.select({ userId: member.userId, serverUrl: mcpConnection.serverUrl })
 		.from(mcpConnection)
 		.innerJoin(
 			member,
@@ -90,7 +128,7 @@ export async function isEligibleLeaseOwner(
 			),
 		)
 		.limit(1)
-	return rows.length > 0
+	return withoutAudienceBoundConnections(env, rows).length > 0
 }
 
 export async function isOrgMember(

@@ -9,6 +9,7 @@ import { orgCanRunCompanyBrain } from "@/lib/payments/company-brain-entitlement"
 import { captureActivationRung } from "@/lib/posthog"
 import { SHARED_TEAM_BRAIN_CONTAINER_TAG } from "@/lib/spaces/provisioning"
 import { addMemorySingle } from "@/routes/memories/handler-effect"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import {
 	PUBLIC_CHANNEL_ROLLOUT_ACTION_ID,
 	PUBLIC_CHANNEL_ROLLOUT_DAYS,
@@ -1329,6 +1330,17 @@ async function joinStep(
 ): Promise<void> {
 	const channel = nextChannel(agent, run.run_id, "join")
 	if (!channel) {
+		// With memory writes off the history import would build documents it
+		// cannot store, and introductions summarize that import: stop at join.
+		if (memoryWritesDisabled(brainAgent(agent).env)) {
+			agent.sql`
+				UPDATE brain_public_channel_rollout
+				SET status = 'done', updated_at = ${Date.now()}, failure_count = 0
+				WHERE id = 1 AND run_id = ${run.run_id}
+			`
+			await refreshRolloutCard(agent, botToken, "done")
+			return
+		}
 		agent.sql`
 			UPDATE brain_public_channel_rollout SET phase = 'collect', updated_at = ${Date.now()}
 			WHERE id = 1 AND run_id = ${run.run_id}

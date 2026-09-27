@@ -10,7 +10,11 @@ import { getConnection } from "../tools/mcp/store"
 import { brainAgent, type CompanyBrainAgent } from "../turn/agent"
 import type { TurnDeps } from "../turn/deps"
 import { describeRequestCapabilities, serverDisplayName } from "./capabilities"
-import { resolveLeaseOwners, resolveReachableLeaseOwners } from "./policy"
+import {
+	isAudienceBoundSlug,
+	resolveLeaseOwners,
+	resolveReachableLeaseOwners,
+} from "./policy"
 import { armLeaseRequestExpiry, routeLeaseRequestToOwners } from "./routing"
 import {
 	hasOpenLeaseForServer,
@@ -222,7 +226,10 @@ export async function requestAccessLease(
 			error,
 		)
 	}
-	if (!isMcpServerLeaseable(serverSlug)) {
+	if (
+		!isMcpServerLeaseable(serverSlug) ||
+		(await isAudienceBoundSlug(env, ctx.orgId, serverSlug))
+	) {
 		await captureTerminalLeaseRequest({
 			ctx,
 			serverSlug,

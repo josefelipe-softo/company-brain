@@ -1,4 +1,5 @@
 import type { ModelMessage } from "ai"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import {
 	BrainCostLedger,
 	recordFinishEvent,
@@ -399,7 +400,8 @@ export async function computeTurn(
 			hasSandbox: toolDiscovery.availableFamilies().includes("sandbox"),
 			canRequestAccessLease,
 			connectedAppRouting,
-			allowMemoryWriteback: !options?.passiveInvestigation,
+			allowMemoryWriteback:
+				!options?.passiveInvestigation && !memoryWritesDisabled(env),
 			explicitFinish: !options?.passiveInvestigation,
 		})
 		const buildActiveSystem = () => activeSystem

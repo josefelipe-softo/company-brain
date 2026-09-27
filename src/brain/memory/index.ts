@@ -2,6 +2,7 @@ import * as Effect from "effect/Effect"
 import { makeAppLayer } from "@/config"
 import { captureException } from "@/lib/capture"
 import { addMemorySingle } from "@/routes/memories/handler-effect"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import type { BatchItemResult } from "@/routes/memories/helpers"
 import type {
 	DocumentUpsertError,
@@ -58,6 +59,7 @@ export async function writeMemory(
 	agent?: CompanyBrainAgent,
 	options?: MemoryWriteOptions,
 ): Promise<{ written: boolean }> {
+	if (memoryWritesDisabled(env)) return { written: false }
 	const resetEpoch = agent
 		? (options?.expectedResetEpoch ?? getBrainMemoryResetEpoch(agent))
 		: undefined
