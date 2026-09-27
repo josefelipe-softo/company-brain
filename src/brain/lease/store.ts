@@ -1,4 +1,5 @@
 import type { TurnControlSnapshot } from "../slack/turn-control"
+import { isAudienceBoundServer } from "../tools/mcp/audience"
 import { isLeaseableMcpSlug } from "../tools/mcp/catalog"
 import { getConnectionById } from "../tools/mcp/store"
 import { brainAgent, type CompanyBrainAgent } from "../turn/agent"
@@ -673,6 +674,7 @@ export async function revalidateLease(
 	if (conn.runtime !== "remote_mcp" || !isLeaseableMcpSlug(conn.serverSlug)) {
 		return false
 	}
+	if (isAudienceBoundServer(env, conn.serverUrl)) return false
 	if (conn.id !== lease.lessorConnectionId) return false
 	if (conn.orgId !== lease.orgId) return false
 	if (conn.serverSlug !== lease.serverSlug) return false
