@@ -31,7 +31,11 @@
 		// run on a Cloudflare container.
 		"CONTAINER_SANDBOX": "off",
 		// The sandbox SDK's RPC transport; artifact downloads stream over it.
-		"SANDBOX_TRANSPORT": "rpc"
+		"SANDBOX_TRANSPORT": "rpc",
+		// Hosts of MCP servers that enforce Slack audience permissions (e.g. a
+		// company wiki), comma separated. They receive X-Brain-Surface,
+		// X-Slack-Channel and X-Slack-User, and are never leased.
+		"AUDIENCE_MCP_HOSTS": ""
 	},
 	"observability": {
 		"enabled": true

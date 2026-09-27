@@ -41,6 +41,7 @@ import { sandboxToolsConfigured } from "../tools/sandbox/client"
 import { createSandboxTools } from "../tools/sandbox/tools"
 import { createSchedulerTools } from "../tools/scheduler"
 import { createSendToTools } from "../tools/send-to"
+import type { SlackAudience } from "../tools/mcp/audience"
 import type { TurnActor } from "./actor"
 import type { CompanyBrainAgent } from "./agent"
 import { createCaptureTools, type TurnCapture } from "./capture-tools"
@@ -258,6 +259,16 @@ export async function assembleTurnTools(
 			: slackLookup?.memoryScope?.kind === "private_channel"
 				? "private_channel"
 				: "public_channel"
+	// Where the reply will be read, for audience-bound MCP servers. Built only
+	// from the Slack event; a turn without Slack context sends none.
+	const slackAudience: SlackAudience | undefined = slackLookup
+		? {
+				surface: slackResponseSurface,
+				channelId: slackLookup.memoryScope?.channelId ?? slackLookup.channel,
+				slackUserId: askerSlackUserId,
+			}
+		: undefined
+	const mcpActor: TurnActor = slackAudience ? { ...actor, slackAudience } : actor
 	const assembleStartedAt = Date.now()
 	console.log(
 		`[company-brain][${traceId}] assembleTurnTools start actorUser=${actor.userId ?? "-"} personalOnly=${actor.personalConnectionsOnly ? "yes" : "no"} scheduled=${scheduledRun ? "yes" : "no"} slackLookup=${slackLookup ? "yes" : "no"} memoryScope=${slackLookup?.memoryScope?.kind ?? "none"}`,
@@ -773,7 +784,7 @@ export async function assembleTurnTools(
 				agent,
 				env,
 				orgId: org.id,
-				actor,
+				actor: mcpActor,
 				connections: persistedConnections,
 				callbackUrl,
 				traceId,
@@ -815,7 +826,7 @@ export async function assembleTurnTools(
 			const mcpRuntimeFactory = args.mcpRuntimeFactory ?? createMcpRuntimeTools
 			const mcp: McpRuntimeTools = await mcpRuntimeFactory(
 				env,
-				actor,
+				mcpActor,
 				callbackUrl,
 				traceId,
 				leaseCtx,

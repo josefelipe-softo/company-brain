@@ -2,6 +2,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
 import { CfWorkerJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/cfworker"
 import { decryptToken } from "@/lib/crypto"
+import {
+	audienceHeaders,
+	type SlackAudience,
+	withoutReservedHeaders,
+} from "./audience"
 import { getCatalogEntry } from "./catalog"
 import { createCustomMcpFetch } from "./custom-url"
 import { withMcpFetchTimeout } from "./fetch"
@@ -20,6 +25,7 @@ export async function connectMcpClient(
 	env: Env,
 	connection: McpConnectionRow,
 	callbackUrl: string,
+	audience?: SlackAudience,
 ): Promise<McpClientHandle> {
 	if (!connection.serverUrl) {
 		throw new Error(
@@ -33,11 +39,16 @@ export async function connectMcpClient(
 		? withMcpFetchTimeout()
 		: withMcpFetchTimeout(createCustomMcpFetch(env))
 
+	// Slack audience context, only for servers listed in AUDIENCE_MCP_HOSTS.
+	// Set by the harness from the Slack event; see ./audience.ts.
+	const context = audienceHeaders(env, connection.serverUrl, audience)
+
 	let transport: StreamableHTTPClientTransport
 	if (connection.authType === "oauth") {
 		transport = new StreamableHTTPClientTransport(url, {
 			authProvider: new McpRuntimeProvider(env, connection, callbackUrl),
 			fetch: mcpFetch,
+			requestInit: { headers: context },
 		})
 	} else if (connection.authType === "static" && connection.accessToken) {
 		const token = await decryptToken(
@@ -47,17 +58,27 @@ export async function connectMcpClient(
 		const headerName = connection.metadata?.headerName ?? "Authorization"
 		const value = headerName === "Authorization" ? `Bearer ${token}` : token
 		// Drop case-variant duplicates, else Headers joins them into one value.
-		const extras = Object.entries(
-			connection.metadata?.extraHeaders ?? {},
+		// Audience-bound servers also lose any user-set audience header.
+		const extras = withoutReservedHeaders(
+			env,
+			connection.serverUrl,
+			Object.entries(connection.metadata?.extraHeaders ?? {}),
 		).filter(([name]) => name.toLowerCase() !== headerName.toLowerCase())
 		transport = new StreamableHTTPClientTransport(url, {
 			fetch: mcpFetch,
 			requestInit: {
-				headers: { ...Object.fromEntries(extras), [headerName]: value },
+				headers: {
+					...Object.fromEntries(extras),
+					...context,
+					[headerName]: value,
+				},
 			},
 		})
 	} else {
-		transport = new StreamableHTTPClientTransport(url, { fetch: mcpFetch })
+		transport = new StreamableHTTPClientTransport(url, {
+			fetch: mcpFetch,
+			requestInit: { headers: context },
+		})
 	}
 
 	const client = new Client(
@@ -87,8 +108,9 @@ export async function connectRemoteMcpProvider(
 	env: Env,
 	connection: McpConnectionRow,
 	callbackUrl: string,
+	audience?: SlackAudience,
 ): Promise<ToolProviderHandle> {
-	const handle = await connectMcpClient(env, connection, callbackUrl)
+	const handle = await connectMcpClient(env, connection, callbackUrl, audience)
 	return {
 		listTools: () => listMcpTools(handle),
 		callTool: (name, args, options) => callMcpTool(handle, name, args, options),

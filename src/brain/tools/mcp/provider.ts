@@ -1,4 +1,5 @@
 import type { Tool as McpTool } from "@modelcontextprotocol/sdk/types.js"
+import type { SlackAudience } from "./audience"
 import type { McpConnectionRow } from "./store"
 
 export type ProviderTool = {
@@ -26,6 +27,7 @@ type ProviderConnectors = {
 		env: Env,
 		connection: McpConnectionRow,
 		callbackUrl: string,
+		audience?: SlackAudience,
 	) => Promise<ToolProviderHandle>
 	embedded: (
 		env: Env,
@@ -34,9 +36,9 @@ type ProviderConnectors = {
 }
 
 const defaultConnectors: ProviderConnectors = {
-	remote: async (env, connection, callbackUrl) => {
+	remote: async (env, connection, callbackUrl, audience) => {
 		const { connectRemoteMcpProvider } = await import("./client")
-		return connectRemoteMcpProvider(env, connection, callbackUrl)
+		return connectRemoteMcpProvider(env, connection, callbackUrl, audience)
 	},
 	embedded: async (env, connection) => {
 		if (connection.serverSlug === "gmail") {
@@ -51,10 +53,15 @@ export async function connectToolProvider(
 	env: Env,
 	connection: McpConnectionRow,
 	callbackUrl: string,
-	connectors: ProviderConnectors = defaultConnectors,
+	options: {
+		/** Slack audience of the turn; only audience-bound servers receive it. */
+		audience?: SlackAudience
+		connectors?: ProviderConnectors
+	} = {},
 ): Promise<ToolProviderHandle> {
+	const connectors = options.connectors ?? defaultConnectors
 	if (connection.runtime === "embedded") {
 		return connectors.embedded(env, connection)
 	}
-	return connectors.remote(env, connection, callbackUrl)
+	return connectors.remote(env, connection, callbackUrl, options.audience)
 }
