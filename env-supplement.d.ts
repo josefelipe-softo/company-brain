@@ -75,4 +75,6 @@ interface Env {
 	 * X-Slack-User on every request and can never be leased. Comma separated.
 	 */
 	AUDIENCE_MCP_HOSTS?: string
+	/** "off" stops every write to supermemory (memories, channel observation, profile). */
+	BRAIN_MEMORY_WRITES?: string
 }

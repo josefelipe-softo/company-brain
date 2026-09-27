@@ -1,4 +1,5 @@
 import type { ToolSet } from "ai"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import type { BrainCostLedger } from "../billing/cost"
 import { createConfigurationTool } from "../configuration"
 import { buildLeaseRuntimeContext } from "../lease/store"
@@ -351,7 +352,7 @@ export async function assembleTurnTools(
 				agent,
 				args.costLedger,
 				// A read-only turn resolves without caching the result as a memory.
-				!actor.readOnly,
+				!actor.readOnly && !memoryWritesDisabled(env),
 			)
 			console.log(
 				`[company-brain][${traceId}] resolve_entity ref="${logPreview(reference)}" ms=${Date.now() - t} ${resolved ? `canonical="${resolved.canonical}" domain=${resolved.domain ?? "-"} source=${resolved.source}` : "unresolved"}`,
@@ -382,7 +383,7 @@ export async function assembleTurnTools(
 			? {}
 			: createProgressTools(deps, args.progress, traceId, args.turnState)),
 		...createCaptureTools(deps, capture, traceId, {
-			allowWrites: !passiveInvestigation,
+			allowWrites: !passiveInvestigation && !memoryWritesDisabled(env),
 			env,
 		}),
 		// Destructive bulk forget: interactive turns only, apply gated by approval.

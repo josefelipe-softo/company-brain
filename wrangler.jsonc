@@ -35,7 +35,9 @@
 		// Hosts of MCP servers that enforce Slack audience permissions (e.g. a
 		// company wiki), comma separated. They receive X-Brain-Surface,
 		// X-Slack-Channel and X-Slack-User, and are never leased.
-		"AUDIENCE_MCP_HOSTS": ""
+		"AUDIENCE_MCP_HOSTS": "",
+		// "off" keeps supermemory read-only: nothing from Slack is written there.
+		"BRAIN_MEMORY_WRITES": "on"
 	},
 	"observability": {
 		"enabled": true

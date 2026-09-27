@@ -5,6 +5,7 @@ import { z } from "zod"
 import { fastModel } from "@/config"
 import { captureException } from "@/lib/capture"
 import { decryptToken } from "@/lib/crypto"
+import { memoryWritesDisabled } from "../../memory/write-switch"
 import { writeMemories } from "../memory"
 import { BRAIN_CAPTURE_POLICY } from "../memory/profile-config"
 import { MAX_BRAIN_OBSERVE_DOCS, personBrainTagKey } from "../memory/tags"
@@ -735,6 +736,7 @@ export async function armChannelObserve(
 	agent: CompanyBrainAgent,
 	payload: ChannelObservePayload,
 ): Promise<void> {
+	if (memoryWritesDisabled(brainAgent(agent).env)) return
 	ensureChannelObserveTables(agent)
 	const epochPayload = {
 		...payload,
@@ -1071,6 +1073,11 @@ export async function runChannelObserve(
 		return
 	}
 	if (!isOwned(agent, key, schedule.id)) return
+	// Armed before BRAIN_MEMORY_WRITES=off: finish without distilling anything.
+	if (memoryWritesDisabled(brainAgent(agent).env)) {
+		finishOwnedChannelObserve(agent, key, schedule.id)
+		return
+	}
 	const retry = loadChannelRetryState(agent, key)
 	const ownership = agent.sql<{ armed_at: number }>`
 		SELECT armed_at FROM brain_channel_observe
