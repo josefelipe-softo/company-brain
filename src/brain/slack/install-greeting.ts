@@ -77,6 +77,7 @@ export async function composeInstallBubbles(
 		companyName?: string | null
 		homeChannelId?: string | null
 		trialActive?: boolean
+		pilot?: boolean
 	} = {},
 ): Promise<string[] | null> {
 	const base = {
@@ -84,6 +85,7 @@ export async function composeInstallBubbles(
 		companyName: opts.companyName,
 		homeChannelId: opts.homeChannelId,
 		trialActive: opts.trialActive,
+		pilot: opts.pilot,
 	}
 	try {
 		const agent = await getAgentByName(env.COMPANY_BRAIN_AGENT, orgId)

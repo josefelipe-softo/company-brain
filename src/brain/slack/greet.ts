@@ -21,11 +21,14 @@ export type InstallGreetingParts = {
 	homeChannelId?: string | null
 	starters?: string[]
 	trialActive?: boolean
+	/** Pilot install: no member wave and no research, so don't promise them. */
+	pilot?: boolean
 }
 
 // Deterministic skeleton so the voice never drifts; only the starters are generated.
 export function installGreeting(parts: InstallGreetingParts = {}): string {
-	const { firstName, companyName, homeChannelId, starters, trialActive } = parts
+	const { firstName, companyName, homeChannelId, starters, trialActive, pilot } =
+		parts
 	const hi = firstName ? `Hey ${firstName},` : "Hey,"
 	const home = homeChannelId ? `<#${homeChannelId}>` : "#company-brain"
 	const subject = companyName ?? "your company"
@@ -49,11 +52,19 @@ export function installGreeting(parts: InstallGreetingParts = {}): string {
 		"🔌  *Connect your tools*",
 		"Linear, Notion, GitHub, Gmail and more, so I can answer from those too.",
 		"",
-		`📨  *Your team is joining ${home}*`,
-		`I'm adding every full workspace member to ${home}, creating their Supermemory account, and sending each person a welcome DM. Guests and external members are excluded.`,
-		"",
-		`🔍  I'm reading up on ${subject} right now. I'll post what I learn in ${home} shortly.`,
-		"",
+		...(pilot
+			? [
+					"🧪  *Pilot mode*",
+					`Nobody else has been added or messaged. Outside ${home} I only answer DMs and @mentions.`,
+					"",
+				]
+			: [
+					`📨  *Your team is joining ${home}*`,
+					`I'm adding every full workspace member to ${home}, creating their Supermemory account, and sending each person a welcome DM. Guests and external members are excluded.`,
+					"",
+					`🔍  I'm reading up on ${subject} right now. I'll post what I learn in ${home} shortly.`,
+					"",
+				]),
 	]
 
 	if (trialActive) {

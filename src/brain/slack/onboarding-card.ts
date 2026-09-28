@@ -13,6 +13,7 @@ import {
 } from "./client"
 import { firstNameOf, installGreeting, orgWithBrain } from "./greet"
 import { BUBBLE_DELAY_MS, composeInstallBubbles } from "./install-greeting"
+import { pilotMode } from "./pilot"
 import {
 	AUTOMATIC_TEAM_INVITE_FALLBACK,
 	automaticTeamInviteProgressBlocks,
@@ -117,16 +118,19 @@ export async function greetSlackInstaller(
 		const home = await agent.getHomeChannel().catch(() => null)
 
 		// First bubble is the thread parent; the rest reply under it.
+		const pilot = pilotMode(env)
 		const bubbles = (await composeInstallBubbles(env, args.orgId, firstName, {
 			companyName: org.name ?? args.teamName,
 			homeChannelId: home?.channelId,
 			trialActive: org.trialActive,
+			pilot,
 		})) ?? [
 			installGreeting({
 				firstName,
 				companyName: org.name ?? args.teamName,
 				homeChannelId: home?.channelId,
 				trialActive: org.trialActive,
+				pilot,
 			}),
 		]
 		let parentTs: string | undefined

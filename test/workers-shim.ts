@@ -9,6 +9,7 @@ mock.module("cloudflare:workers", () => ({
 	WorkflowEntrypoint: class {},
 	env: {},
 	exports: {},
+	tracing: {},
 }))
 
 // The agents SDK imports EmailMessage at module load.

@@ -77,4 +77,6 @@ interface Env {
 	AUDIENCE_MCP_HOSTS?: string
 	/** "off" stops every write to supermemory (memories, channel observation, profile). */
 	BRAIN_MEMORY_WRITES?: string
+	/** "on" installs quietly: no member wave, no channel auto-join, no research, own-channel proactivity. */
+	BRAIN_PILOT_MODE?: string
 }
