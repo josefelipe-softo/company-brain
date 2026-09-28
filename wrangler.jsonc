@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "company-brain",
+	"name": "company-brain-deploy",
 	"main": "src/worker.ts",
 	"compatibility_date": "2025-06-22",
 	"compatibility_flags": [
@@ -26,6 +26,9 @@
 			"/health"
 		]
 	},
+	// Variáveis editadas no painel da Cloudflare (ex.: AUDIENCE_MCP_HOSTS)
+	// sobrevivem aos deploys do Git.
+	"keep_vars": true,
 	"vars": {
 		// "on" once the Workers Paid block below is enabled: sandbox tools then
 		// run on a Cloudflare container.
@@ -37,7 +40,7 @@
 		// X-Slack-Channel and X-Slack-User, and are never leased.
 		"AUDIENCE_MCP_HOSTS": "",
 		// "off" keeps supermemory read-only: nothing from Slack is written there.
-		"BRAIN_MEMORY_WRITES": "on"
+		"BRAIN_MEMORY_WRITES": "off"
 	},
 	"observability": {
 		"enabled": true
@@ -52,14 +55,14 @@
 		{
 			"binding": "DB",
 			"database_name": "company-brain",
-			"database_id": "00000000-0000-0000-0000-000000000000",
+			"database_id": "90c4afa5-0133-43b9-b99c-e4a62f07c6e6",
 			"migrations_dir": "drizzle"
 		}
 	],
 	"kv_namespaces": [
 		{
 			"binding": "BRAIN_KV",
-			"id": "company_brain_kv"
+			"id": "7adf289adc0a42378ab5aee9005c4e51"
 		}
 	],
 	"durable_objects": {
