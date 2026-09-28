@@ -29,6 +29,8 @@
 	// Variáveis editadas no painel da Cloudflare (ex.: AUDIENCE_MCP_HOSTS)
 	// sobrevivem aos deploys do Git.
 	"keep_vars": true,
+	// Mantém o endereço *.workers.dev ligado a cada deploy.
+	"workers_dev": true,
 	"vars": {
 		// "on" once the Workers Paid block below is enabled: sandbox tools then
 		// run on a Cloudflare container.
