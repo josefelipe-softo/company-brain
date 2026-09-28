@@ -44,7 +44,6 @@ import {
 	buildSlackHistoryDocuments,
 	recentSlackChannelEvidence,
 } from "./history-document"
-import { pilotMode } from "./pilot"
 import { isEligiblePublicChannel } from "./public-channel-policy"
 import { isSlackHistoryThreadRoot } from "./public-channel-thread-root"
 import {
@@ -770,10 +769,6 @@ export async function armPublicChannelBeachhead(
 	agent: CompanyBrainAgent,
 	payload: PublicChannelBeachhead,
 ): Promise<void> {
-	if (pilotMode(brainAgent(agent).env)) {
-		console.log(`[company-brain] beachhead skipped (pilot mode) org=${agent.name}`)
-		return
-	}
 	ensurePublicChannelRolloutTables(agent)
 	await agent.schedule(
 		BEACHHEAD_DELAY_SECONDS,

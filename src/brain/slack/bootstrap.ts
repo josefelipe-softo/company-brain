@@ -7,7 +7,6 @@ import {
 	COMPANY_BRAIN_HOME_WELCOME_VERSION,
 	companyBrainHomeWelcomeMessages,
 } from "./home-welcome"
-import { pilotMode } from "./pilot"
 
 const SLACK_API = "https://slack.com/api"
 const HOME_CHANNEL_NAME = "company-brain"
@@ -233,29 +232,8 @@ export async function bootstrapSlackWorkspace(
 				})
 		}
 
-		const pilot = pilotMode(env)
-		if (pilot) {
-			// Quiet install: outside #company-brain, answer only DMs and mentions
-			// until an admin opts in. Never overrides a default already chosen.
-			const [{ organizationSettings }, { parseBrainProactivity }, { updateBrainProactivity }] =
-				await Promise.all([
-					import("@repo/db/schema"),
-					import("./proactivity"),
-					import("../settings/proactivity"),
-				])
-			const current = await db(env).query.organizationSettings.findFirst({
-				where: eq(organizationSettings.orgId, args.orgId),
-				columns: { brainProactivity: true },
-			})
-			if (!parseBrainProactivity(current?.brainProactivity).default) {
-				await updateBrainProactivity(env, args.orgId, {
-					default: "own_channel_only",
-				})
-			}
-		}
-
 		// researchCompanyOnSignup no-ops if a run is already queued/running/done.
-		if (domain && !pilot) {
+		if (domain) {
 			await agent.researchCompanyOnSignup({
 				domain,
 				ownerId: args.installerUserId,

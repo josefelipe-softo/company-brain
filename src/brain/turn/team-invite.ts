@@ -37,7 +37,6 @@ import {
 	getOrgActorBySlackIdentity,
 	getWorkspaceByTeamId,
 } from "../slack/workspace"
-import { pilotMode } from "../slack/pilot"
 import { mcpAppDisplayName } from "../tools/mcp/directory"
 import { brainAgent, type CompanyBrainAgent } from "./agent"
 import { getHomeChannel } from "./home-channel"
@@ -637,13 +636,9 @@ export async function startAutomaticTeamInviteRollout(
 	agent: CompanyBrainAgent,
 	payload: AutomaticTeamInviteStart,
 ): Promise<void> {
-	const env = brainAgent(agent).env
-	if (pilotMode(env)) {
-		console.log(`[company-brain] team invite rollout skipped (pilot mode) org=${agent.name}`)
-		return
-	}
 	ensureTeamInviteTables(agent)
 	const prior = currentRun(agent)
+	const env = brainAgent(agent).env
 	const ws = await getWorkspaceByTeamId(env, payload.teamId)
 	if (!ws || ws.orgId !== agent.name) return
 

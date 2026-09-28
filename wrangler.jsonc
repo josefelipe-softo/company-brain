@@ -42,10 +42,7 @@
 		// X-Slack-Channel and X-Slack-User, and are never leased.
 		"AUDIENCE_MCP_HOSTS": "",
 		// "off" keeps supermemory read-only: nothing from Slack is written there.
-		"BRAIN_MEMORY_WRITES": "off",
-		// "on" installs quietly in a real workspace: no member wave, no
-		// channel auto-join, no research posts, own-channel proactivity.
-		"BRAIN_PILOT_MODE": "on"
+		"BRAIN_MEMORY_WRITES": "off"
 	},
 	"observability": {
 		"enabled": true
