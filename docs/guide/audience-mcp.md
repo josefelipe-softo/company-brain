@@ -32,6 +32,27 @@ Connections to these servers are also **never leased**. A borrower would read
 with the lender's permissions and post the result where the lender never
 agreed to. Custom MCP connections are already personal-only.
 
+## Automatic knowledge-base lookup
+
+Supermemory is recalled automatically before every Slack turn. A custom MCP
+server, by default, is only a tool the model may choose to call, so whether an
+answer uses the company wiki would depend on the model.
+
+For audience-bound servers, the harness makes the first lookup deterministic.
+Before the model runs, it calls the server's search tool with the user's
+request, using the same connection and the same audience headers as a regular
+tool call. The hits go into the turn's context; the model can still call the
+server's tools to read a note in full.
+
+- The server's permissions apply as usual, so the lookup never shows more than
+  the tool itself would. A refusal ("nothing can be shown here") is passed to
+  the model too, so it says so instead of searching elsewhere.
+- It is fail-soft: a server that fails or takes more than 5 seconds is skipped
+  and the turn goes on.
+- `AUDIENCE_MCP_RECALL_TOOL` (default `buscar_notas`) and
+  `AUDIENCE_MCP_RECALL_ARG` (default `consulta`) name the search tool and its
+  query argument. Set the tool to `off` to disable the lookup.
+
 ## Keeping supermemory read-only
 
 Set `BRAIN_MEMORY_WRITES=off` when another system is the source of truth and

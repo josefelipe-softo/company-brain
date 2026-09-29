@@ -298,6 +298,7 @@ export async function computeTurn(
 		connectedApps,
 		connectedAppRuntime,
 		connectedAppRouting,
+		ambientKnowledge,
 	} = assembled
 
 	const runTurn = async (): Promise<ComputeTurnResult> => {
@@ -458,6 +459,7 @@ export async function computeTurn(
 		})
 		const runtimePrompt = [
 			baseRuntimePrompt,
+			ambientKnowledge ?? "",
 			options?.passiveInvestigation
 				? buildPassiveInvocationContext(options.passiveInvestigation.reason)
 				: "",

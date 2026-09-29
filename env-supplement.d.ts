@@ -75,6 +75,13 @@ interface Env {
 	 * X-Slack-User on every request and can never be leased. Comma separated.
 	 */
 	AUDIENCE_MCP_HOSTS?: string
+	/**
+	 * Search tool called on audience-bound servers before every Slack turn
+	 * (ambient knowledge-base recall). Default "buscar_notas", argument
+	 * "consulta". Set the tool to "off" to disable the recall.
+	 */
+	AUDIENCE_MCP_RECALL_TOOL?: string
+	AUDIENCE_MCP_RECALL_ARG?: string
 	/** "off" stops every write to supermemory (memories, channel observation, profile). */
 	BRAIN_MEMORY_WRITES?: string
 }
