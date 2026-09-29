@@ -37,6 +37,7 @@ import {
 	type McpRuntimeServerState,
 	type McpRuntimeTools,
 } from "../tools/mcp/runtime-tools"
+import { buildAmbientKnowledgeContext } from "../tools/mcp/ambient-kb"
 import { listConnectionsForActor } from "../tools/mcp/store"
 import { sandboxToolsConfigured } from "../tools/sandbox/client"
 import { createSandboxTools } from "../tools/sandbox/tools"
@@ -229,6 +230,8 @@ export type AssembleTurnToolsResult =
 			connectedApps: RuntimeConnectedApp[]
 			mcpClose?: () => Promise<void>
 			connectedAppRuntime?: ConnectedAppRuntimeController
+			/** Knowledge-base recall from audience-bound MCP servers, if any. */
+			ambientKnowledge?: string | null
 	  }
 	| { ready: false; result: ComputeTurnResult }
 
@@ -769,6 +772,16 @@ export async function assembleTurnTools(
 		return []
 	})
 	const callbackUrl = `${env.PUBLIC_URL}/brain/mcp-connections/callback`
+	// Knowledge-base recall runs alongside tool setup; it never blocks the turn
+	// beyond its own timeout and resolves to null on any failure.
+	const ambientKnowledgePromise = buildAmbientKnowledgeContext({
+		env,
+		connections: persistedConnections,
+		audience: slackAudience,
+		query: requestText,
+		callbackUrl,
+		traceId,
+	}).catch(() => null)
 	let connectedAppRuntime: ConnectedAppRuntimeController | undefined
 	if (
 		args.turnState &&
@@ -939,6 +952,8 @@ export async function assembleTurnTools(
 		`[company-brain][${traceId}] assembleTurnTools finish hasApps=${hasApps ? "yes" : "no"} activeToolCount=${activeToolNames.length} hiddenToolCount=${Object.keys(tools).length - activeToolNames.length} activeTools=${activeToolNames.join(",")} lazyFamilies=${toolDiscovery.availableFamilies().join(",") || "-"} ms=${Date.now() - assembleStartedAt}`,
 	)
 
+	const ambientKnowledge = await ambientKnowledgePromise
+
 	return {
 		ready: true,
 		tools,
@@ -948,5 +963,6 @@ export async function assembleTurnTools(
 		connectedApps,
 		mcpClose,
 		connectedAppRuntime,
+		ambientKnowledge,
 	}
 }
